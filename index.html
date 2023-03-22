@@ -37,18 +37,85 @@
 
   const controls = new OrbitControls(camera, renderer.domElement)
 
-  const geometry = new THREE.BoxGeometry(1, 1, 1)
-  const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-  const cube = new THREE.Mesh(geometry, material)
+  class Box extends THREE.Mesh {
+    constructor({
+      width,
+      height,
+      depth,
+      color = '#00ff00',
+      velocity = {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      position = {
+        x: 0,
+        y: 0,
+        z: 0
+      }
+    }) {
+      super(
+        new THREE.BoxGeometry(width, height, depth),
+        new THREE.MeshStandardMaterial({ color })
+      )
+
+      this.width = width
+      this.height = height
+      this.depth = depth
+
+      this.position.set(position.x, position.y, position.z)
+
+      this.bottom = this.position.y - this.height / 2
+      this.top = this.position.y + this.height / 2
+
+      this.velocity = velocity
+      this.gravity = -0.002
+    }
+
+    update(group) {
+      this.bottom = this.position.y - this.height / 2
+      this.top = this.position.y + this.height / 2
+
+      this.applyGravity()
+    }
+
+    applyGravity() {
+      this.velocity.y += this.gravity
+
+      // this is where we hit the ground
+      if (this.bottom + this.velocity.y <= ground.top) {
+        this.velocity.y *= 0.8
+        this.velocity.y = -this.velocity.y
+      } else this.position.y += this.velocity.y
+    }
+  }
+
+  const cube = new Box({
+    width: 1,
+    height: 1,
+    depth: 1,
+    velocity: {
+      x: 0,
+      y: -0.01,
+      z: 0
+    }
+  })
   cube.castShadow = true
   scene.add(cube)
 
-  const ground = new THREE.Mesh(
-    new THREE.BoxGeometry(5, 0.5, 10),
-    new THREE.MeshStandardMaterial({ color: 0x0000ff })
-  )
+  const ground = new Box({
+    width: 5,
+    height: 0.5,
+    depth: 10,
+    color: '#0000ff',
+    position: {
+      x: 0,
+      y: -2,
+      z: 0
+    }
+  })
+
   ground.receiveShadow = true
-  ground.position.y = -2
   scene.add(ground)
 
   const light = new THREE.DirectionalLight(0xffffff, 1)
@@ -58,12 +125,16 @@
   scene.add(light)
 
   camera.position.z = 5
+  console.log(ground.top)
+  console.log(cube.bottom)
 
   function animate() {
     requestAnimationFrame(animate)
     renderer.render(scene, camera)
-    cube.rotation.x += 0.01
-    cube.rotation.y += 0.01
+    cube.update(ground)
+    // cube.position.y += -0.01
+    // cube.rotation.x += 0.01
+    // cube.rotation.y += 0.01
   }
   animate()
 </script>
